@@ -3,18 +3,7 @@
 variable "proxmox_host" {
   type        = string
   description = "The Proxmox host or IP address."
-}
-
-variable "proxmox_username" {
-  type        = string
-  description = "Username when authenticating to Proxmox, including the realm."
-  sensitive   = true
-}
-
-variable "proxmox_password" {
-  type        = string
-  description = "Password for the user."
-  sensitive   = true
+  default     = "pve1.example.com"
 }
 
 ##### Optional Variables #####
@@ -34,25 +23,43 @@ variable "proxmox_skip_verify_tls" {
 variable "proxmox_node" {
   type        = string
   description = "Which node in the Proxmox cluster to start the virtual machine on during creation."
-  default     = "proxmox"
+  default     = "pve1"
+}
+
+variable "proxmox_node_host" {
+  type        = string
+  description = "To use as ssh bastion host address."
+  default     = "pve1.example.com"
+}
+
+variable "proxmox_node_ssh_port" {
+  type        = number
+  description = "To use as ssh bastion host port."
+  default     = 22
+}
+
+variable "proxmox_node_ssh_username" {
+  type        = string
+  description = "To use as ssh bastion host port."
+  default     = "root"
+}
+
+variable "proxmox_pool" {
+  type        = string
+  description = "Proxmox pool."
+  default     = "packer_pool"
 }
 
 variable "template_name" {
   type        = string
   description = "The VM template name."
-  default     = "ubuntu-22.04-base"
+  default     = "base-template-ubuntu-24.04-cloud-init"
 }
 
 variable "template_description" {
   type        = string
   description = "Description of the VM template."
-  default     = "Base template for Ubuntu 22.04"
-}
-
-variable "template_vm_id" {
-  type        = number
-  description = "The ID used to reference the virtual machine. This will also be the ID of the final template. If not given, the next free ID on the node will be used."
-  default     = null
+  default     = "Base template for Ubuntu 24.04 (cloud-init)."
 }
 
 variable "ssh_username" {
@@ -88,7 +95,7 @@ variable "ssh_agent_auth" {
 variable "disk_storage_pool" {
   type        = string
   description = "Storage pool for the boot disk and cloud-init image."
-  default     = "local-lvm"
+  default     = "local-zfs"
 
   validation {
     condition     = var.disk_storage_pool != null
@@ -132,13 +139,19 @@ variable "disk_type" {
 variable "memory" {
   type        = number
   description = "How much memory, in megabytes, to give the virtual machine."
-  default     = 1024
+  default     = 4096
+}
+
+variable "ballooning_minimum" {
+  type        = number
+  description = "How much memory, in megabytes, to give the virtual machine."
+  default     = 512
 }
 
 variable "cores" {
   type        = number
   description = "How many CPU cores to give the virtual machine."
-  default     = 1
+  default     = 2
 }
 
 variable "sockets" {
@@ -150,7 +163,7 @@ variable "sockets" {
 variable "iso_url" {
   type        = string
   description = "URL to an ISO file to upload to Proxmox, and then boot from."
-  default     = "https://releases.ubuntu.com/22.04/ubuntu-22.04.2-live-server-amd64.iso"
+  default     = "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso"
 }
 
 variable "iso_storage_pool" {
@@ -159,46 +172,10 @@ variable "iso_storage_pool" {
   default     = "local"
 }
 
-variable "iso_file" {
-  type        = string
-  description = "Filename of the ISO file to boot from."
-  default     = null //"ubuntu-22.04.2-live-server-amd64.iso"
-}
-
 variable "iso_checksum" {
   type        = string
   description = "Checksum of the ISO file."
-  default     = "5e38b55d57d94ff029719342357325ed3bda38fa80054f9330dc789cd2d43931"
-}
-
-variable "http_server_host" {
-  type        = string
-  description = "Overrides packers {{ .HTTPIP }} setting in the boot commands. Useful when running packer in WSL2."
-  default     = null
-}
-
-variable "http_server_port" {
-  type        = number
-  description = "The port to serve the http_directory on. Overrides packers {{ .HTTPPort }} setting in the boot commands. Useful when running packer in WSL2."
-  default     = null
-}
-
-variable "http_bind_address" {
-  type        = string
-  description = "This is the bind address for the HTTP server. Defaults to 0.0.0.0 so that it will work with any network interface."
-  default     = null
-}
-
-variable "http_interface" {
-  type        = string
-  description = "Name of the network interface that Packer gets HTTPIP from."
-  default     = null
-}
-
-variable "vm_interface" {
-  type        = string
-  description = "Name of the network interface that Packer gets the VMs IP from."
-  default     = null
+  default     = "sha256:8762f7e74e4d64d72fceb5f70682e6b069932deedb4949c6975d0f0fe0a91be3"
 }
 
 variable "network_bridge" {
@@ -210,7 +187,7 @@ variable "network_bridge" {
 variable "cloud_init_storage_pool" {
   type        = string
   description = "Name of the Proxmox storage pool to store the Cloud-Init CDROM on. If not given, the storage pool of the boot device will be used (disk_storage_pool)."
-  default     = null
+  default     = "local-zfs"
 }
 
 variable "cloud_init_apt_packages" {
@@ -235,4 +212,34 @@ variable "timezone" {
   type        = string
   description = "Sets the timezone during the subiquity install."
   default     = "Etc/UTC"
+}
+
+variable "ip_addr" {
+  type        = string
+  description = "Temporary IP address for VM."
+  default     = "10.10.10.254/24"
+}
+
+variable "default_gw" {
+  type        = string
+  description = "Default gateway."
+  default     = "10.10.10.1"
+}
+
+variable "search_domain" {
+  type        = string
+  description = "Search domain."
+  default     = "example.com"
+}
+
+variable "dns_server_primary" {
+  type        = string
+  description = "Primary DNS server."
+  default     = "1.1.1.1"
+}
+
+variable "dns_server_secondary" {
+  type        = string
+  description = "Secondary DNS server."
+  default     = "8.8.8.8"
 }

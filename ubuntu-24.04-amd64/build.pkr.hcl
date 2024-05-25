@@ -2,7 +2,7 @@ build {
   sources = [
     "source.file.meta_data",
     "source.file.user_data",
-    "source.proxmox.ubuntu"
+    "source.proxmox-iso.ubuntu"
   ]
 
   # Wait for cloud-init to complete after reboot
@@ -12,27 +12,20 @@ build {
 
   # Clean up subiquity installer
   provisioner "shell" {
-    execute_command = "sudo /bin/sh -c '{{ .Vars }} {{ .Path }}'"
-    inline = [
-      "cloud-init clean --machine-id --logs",
-      "if [ -f /etc/cloud/cloud.cfg.d/99-installer.cfg ]; then rm /etc/cloud/cloud.cfg.d/99-installer.cfg; echo 'Deleting subiquity cloud-init config'; fi",
-      "if [ -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg ]; then rm /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg; echo 'Deleting subiquity cloud-init network config'; fi",
-    ]
-  }
-
-  # Disable packer provisioner access
-  provisioner "shell" {
     environment_vars = [
       "SSH_USERNAME=${var.ssh_username}"
     ]
-    skip_clean      = true
+    skip_clean = true
+    #execute_command = "sudo /bin/sh -c '{{ .Vars }} {{ .Path }}'"
     execute_command = "chmod +x {{ .Path }}; sudo env {{ .Vars }} {{ .Path }}; rm -f {{ .Path }}"
     inline = [
-      "passwd -d $SSH_USERNAME",
-      "passwd -l $SSH_USERNAME",
-      "rm -rf /home/$SSH_USERNAME/.ssh/authorized_keys",
+      "systemctl stop unattended-upgrades",
+      "systemctl disable unattended-upgrades",
+      "cloud-init clean",
       "rm -f /etc/sudoers.d/90-cloud-init-users",
+      "if [ -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg ]; then rm /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg; echo 'Deleting subiquity cloud-init network config'; fi",
+      "if [ -f /etc/cloud/cloud-init.disabled ]; then rm /etc/cloud/cloud-init.disabled; echo 'Deleting cloud-init.disabled config'; fi",
+      "userdel -f -r $SSH_USERNAME"
     ]
   }
-
 }

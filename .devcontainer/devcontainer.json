@@ -1,0 +1,10 @@
+{
+  "image": "devcontainer-packer:0.0.1",
+  "name": "devcontainer-packer",
+  "build": { "dockerfile": "Dockerfile" },
+  "updateRemoteUserUID": true,
+  "userEnvProbe": "loginInteractiveShell"
+  "runArgs": [
+    "--rm"
+  ]
+}
